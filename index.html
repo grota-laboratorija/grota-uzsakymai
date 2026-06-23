@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tyrimų užsakymas – UAB „GROTA"</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #2c3e50; }
+
+/* Viršus */
+.header { background: #1a5276; color: white; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 1.2rem; font-weight: 600; }
+.header span { font-size: 1.5rem; }
+
+/* Konteineris */
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+/* Kortelės */
+.card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; overflow: hidden; }
+.card-header { background: #2471a3; color: white; padding: 10px 16px; font-weight: 600; font-size: 0.9rem; }
+.card-body { padding: 16px; }
+
+/* Viršutinė eilutė */
+.top-row { display: grid; grid-template-columns: 320px 300px 1fr; gap: 16px; }
+
+/* Formos laukai */
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 0.82rem; color: #555; margin-bottom: 3px; }
+.field input, .field select { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.88rem; color: #2c3e50; }
+.field input:focus, .field select:focus { outline: none; border-color: #2471a3; box-shadow: 0 0 0 2px rgba(36,113,163,0.15); }
+
+/* Komplektai */
+.komplektai { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.komplektas-btn { padding: 7px 6px; border: none; border-radius: 5px; color: white; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; text-align: center; }
+.komplektas-btn:hover { opacity: 0.85; }
+
+/* Rodikliai */
+.rodikliai-grid { display: flex; flex-wrap: wrap; gap: 2px; }
+.rodiklis-cb { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.82rem; white-space: nowrap; }
+.rodiklis-cb:hover { background: #eaf2fb; }
+.rodiklis-cb input { cursor: pointer; }
+.pogrupis-label { width: 100%; color: #2471a3; font-size: 0.78rem; font-style: italic; font-weight: 600; margin: 6px 0 2px; }
+
+/* Ėminiai */
+.eminiai-header { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.btn { padding: 7px 14px; border: none; border-radius: 5px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: opacity 0.2s; }
+.btn:hover { opacity: 0.85; }
+.btn-green  { background: #27ae60; color: white; }
+.btn-red    { background: #c0392b; color: white; }
+.btn-gray   { background: #95a5a6; color: white; }
+.btn-blue   { background: #1a5276; color: white; font-size: 1rem; padding: 10px 20px; }
+
+/* Ėminių lentelė */
+.eminiai-wrap { overflow-x: auto; }
+table { border-collapse: collapse; min-width: 100%; font-size: 0.82rem; }
+thead tr { background: #1a5276; color: white; }
+th { padding: 7px 6px; text-align: center; font-weight: 600; white-space: nowrap; border: 1px solid #154360; }
+th.col-obj { text-align: left; min-width: 180px; }
+th.col-date { min-width: 110px; }
+th.col-punk { min-width: 80px; }
+th.col-kat  { min-width: 70px; }
+th.col-rod  { min-width: 48px; }
+td { padding: 5px 6px; border: 1px solid #e0e0e0; vertical-align: middle; }
+td input[type=text], td input[type=date] { width: 100%; border: none; background: transparent; font-size: 0.82rem; padding: 1px; }
+td input[type=text]:focus, td input[type=date]:focus { outline: 1px solid #2471a3; border-radius: 3px; }
+td.center { text-align: center; }
+tr:nth-child(even) { background: #f8fbff; }
+tr:hover td { background: #eaf2fb; }
+
+/* Generuoti mygtukas */
+.generate-wrap { text-align: center; margin-top: 16px; }
+.status-msg { margin-top: 10px; padding: 10px 16px; border-radius: 6px; font-weight: 600; display: none; }
+.status-ok  { background: #d5f5e3; color: #1e8449; }
+.status-err { background: #fadbd8; color: #922b21; }
+.status-load { background: #d6eaf8; color: #1a5276; }
+
+/* Spalvos komplektams */
+.k0{background:#2980b9} .k1{background:#27ae60} .k2{background:#8e44ad}
+.k3{background:#c0392b} .k4{background:#d35400} .k5{background:#16a085}
+.k6{background:#2c3e50} .k7{background:#7f8c8d} .k8{background:#1abc9c}
+.k9{background:#e74c3c}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span>🔬</span>
+  <h1>UAB „GROTA" analitinė laboratorija – Tyrimų užsakymas</h1>
+</div>
+
+<div class="container">
+
+  <!-- VIRŠUTINĖ EILUTĖ -->
+  <div class="top-row">
+
+    <!-- Informacija -->
+    <div class="card">
+      <div class="card-header">Informacija</div>
+      <div class="card-body">
+        <div class="field"><label>Įmonė / vardas *</label><input type="text" id="imone" placeholder="UAB Pavyzdys"></div>
+        <div class="field"><label>Telefonas / el. paštas</label><input type="text" id="telefonas" placeholder="+370 600 00000"></div>
+        <div class="field"><label>Užsakymo pavadinimas</label><input type="text" id="uzsakymas" placeholder="Palikite tuščią – bus „–""></div>
+        <div class="field"><label>Pastabos</label><input type="text" id="pastabos"></div>
+        <div class="field">
+          <label>Tipas</label>
+          <select id="tipas" onchange="keistiTipa()">
+            <option value="vanduo">Vanduo</option>
+            <option value="gruntas">Gruntas</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tiriamasis ėminys</label>
+          <select id="tiriamasis"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Komplektai -->
+    <div class="card">
+      <div class="card-header">Komplektai</div>
+      <div class="card-body">
+        <div class="komplektai" id="komplektai-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Tyrimų rodikliai -->
+    <div class="card">
+      <div class="card-header">Tyrimų rodikliai</div>
+      <div class="card-body">
+        <div id="rodikliai-vanduo" class="rodikliai-grid"></div>
+        <div id="rodikliai-gruntas" class="rodikliai-grid" style="display:none"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ĖMINIAI -->
+  <div class="card">
+    <div class="card-header">Ėminiai</div>
+    <div class="card-body">
+      <div class="eminiai-header">
+        <button class="btn btn-green" onclick="pridetiEmini()">＋ Pridėti ėminį</button>
+        <button class="btn btn-red"   onclick="pasalintiEmini()">－ Pašalinti paskutinį</button>
+        <button class="btn btn-gray"  onclick="isvalytiViska()">🗑 Išvalyti viską</button>
+      </div>
+      <div class="eminiai-wrap">
+        <table id="eminiai-table">
+          <thead><tr id="table-header"></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- GENERUOTI -->
+  <div class="generate-wrap">
+    <button class="btn btn-blue" onclick="generuoti()">📄 Generuoti ir siųsti Word dokumentą</button>
+    <div id="status-msg" class="status-msg"></div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  DUOMENYS
+// ═══════════════════════════════════════════════════
+
+const VANDUO_PAPRASTI = [
+  "HCO3","SEL","SL","BDS7-ns","BDS7-sk","CHDS","D","PS","SM",
+  "AA","AA-vte","BEA","DAA","DAA-t","DAA-vte","HA","HA-t","HA-vte",
+  "LA","LA-trump","NPind","B","C","CN","CO2","FN","H2S","N-b","O2",
+  "P-b","P-min","PEST","pH","SIO2","SPAM","BCHA","FE-b","Fe-II",
+  "BrO3","Fiz. savybės","Ur"
+];
+const METALAI_V  = ["Al","As","Cd","Cr","Cu","Hg","Mn","Ni","Pb","Sb","Se","Sn","V","Zn"];
+const KATIJONAI  = ["Na","NH4","NH4-N","K","Ca","Mg","BK"];
+const ANIJONAI   = ["Br","Cl","F","NO2","NO2-N","NO3","NO3-N","PO4","SO4"];
+
+const GRUNTAS_PAPRASTI = ["BEA-GR","C-GR","NP-GR","Npind-GR","DAA-GR","K-GR","N-GR","P-GR","PEST-GR","pH-GR"];
+const METALAI_G = ["Cd-gr","Cr-gr","Cu-gr","Hg-gr","Ni-gr","Pb-gr","Zn-gr"];
+
+const VANDUO_TIPAI  = ["Požeminis vanduo","Geriamasis vanduo","Paviršinis vanduo","Nuotekos","Kita"];
+const GRUNTAS_TIPAI = ["Gruntas","Dumblas","Dirvožemis","Kita"];
+
+const KOMPLEKTAI = {
+  "Gręžinio pasas":      ["As","BCHA","FE-b","Mn"],
+  "Gręžinio pasas +F,B": ["As","B","BCHA","F","FE-b","Mn"],
+  "HN24":                ["AA","Al","As","B","BCHA","Cd","CN","Cr","Cu","DAA-t","F","FE-b","HA-t","Hg","Mn","Ni","Pb","PEST","Sb","Se","BrO3","Fiz. savybės","C"],
+  "HN24 sutrump.":       ["AA","Al","As","B","BCHA","Cd","CN","Cr","Cu","D","DAA-t","F","FE-b","Fe-II","HA-t","Hg","Mn","Ni","Pb","Sb","Se","BrO3","Fiz. savybės","C"],
+  "HN24 LAND 4-99":      ["Al","As","B","BCHA","Cd","CN","Cr","Cu","F","FE-b","Hg","Mn","Ni","Pb","Sb","Se","BrO3","Fiz. savybės","C","U"],
+  "Upės":                ["BDS7-sk","N-b","NH4","NH4-N","NO2","NO2-N","NO3","NO3-N","NPind","O2","P-b","P-min","pH","SEL","SM","PO4"],
+  "Ūkis pilnas":         ["BCHA","CHDS","N-b","P-b","P-min"],
+  "Ūkis trumpas":        ["N-b","NH4-N","NO2-N","NO3-N","P-b"],
+  "Degalinė ilga":       ["BCHA","CHDS","LA","Mn","Ni","Pb","Zn"],
+  "Degalinė trumpa":     ["BCHA","CHDS","LA"],
+};
+
+// ═══════════════════════════════════════════════════
+//  INICIALIZAVIMAS
+// ═══════════════════════════════════════════════════
+
+function init() {
+  uzpildytiTiriamasis();
+  sukurtiKomplektus();
+  sukurtiRodiklius();
+  pridetiEmini();
+  uzkrautiKlientoduomenis();
+}
+
+function uzpildytiTiriamasis() {
+  const tipas = document.getElementById("tipas").value;
+  const sel   = document.getElementById("tiriamasis");
+  const tipai = tipas === "vanduo" ? VANDUO_TIPAI : GRUNTAS_TIPAI;
+  sel.innerHTML = tipai.map(t => `<option>${t}</option>`).join("");
+}
+
+function keistiTipa() {
+  uzpildytiTiriamasis();
+  document.getElementById("rodikliai-vanduo").style.display =
+    document.getElementById("tipas").value === "vanduo" ? "" : "none";
+  document.getElementById("rodikliai-gruntas").style.display =
+    document.getElementById("tipas").value === "gruntas" ? "" : "none";
+  // Išvalyti visus checkbox
+  document.querySelectorAll('.rodiklis-cb input').forEach(cb => cb.checked = false);
+  atnaujintiLentele();
+}
+
+// ═══════════════════════════════════════════════════
+//  KOMPLEKTAI
+// ═══════════════════════════════════════════════════
+
+function sukurtiKomplektus() {
+  const wrap = document.getElementById("komplektai-wrap");
+  wrap.innerHTML = "";
+  Object.keys(KOMPLEKTAI).forEach((name, i) => {
+    const btn = document.createElement("button");
+    btn.className = `komplektas-btn k${i % 10}`;
+    btn.textContent = name;
+    btn.onclick = () => taikytiKomplekta(name);
+    wrap.appendChild(btn);
+  });
+}
+
+function taikytiKomplekta(name) {
+  document.querySelectorAll('.rodiklis-cb input').forEach(cb => cb.checked = false);
+  KOMPLEKTAI[name].forEach(rod => {
+    const cb = document.getElementById("cb_" + rod);
+    if (cb) cb.checked = true;
+  });
+  atnaujintiLentele();
+}
+
+// ═══════════════════════════════════════════════════
+//  RODIKLIAI
+// ═══════════════════════════════════════════════════
+
+function sukurtiRodiklius() {
+  sukurtiRodikliuBloka("rodikliai-vanduo", [
+    { label: null,        items: VANDUO_PAPRASTI },
+    { label: "Metalai",   items: METALAI_V       },
+    { label: "Katijonai", items: KATIJONAI       },
+    { label: "Anijonai",  items: ANIJONAI        },
+  ]);
+  sukurtiRodikliuBloka("rodikliai-gruntas", [
+    { label: null,          items: GRUNTAS_PAPRASTI },
+    { label: "Metalai-GR",  items: METALAI_G        },
+  ]);
+}
+
+function sukurtiRodikliuBloka(id, blokai) {
+  const wrap = document.getElementById(id);
+  wrap.innerHTML = "";
+  blokai.forEach(({ label, items }) => {
+    if (label) {
+      const lbl = document.createElement("div");
+      lbl.className = "pogrupis-label";
+      lbl.textContent = `── ${label} ──`;
+      wrap.appendChild(lbl);
+    }
+    items.forEach(rod => {
+      const el = document.createElement("label");
+      el.className = "rodiklis-cb";
+      el.innerHTML = `<input type="checkbox" id="cb_${rod}" value="${rod}" onchange="atnaujintiLentele()"> ${rod}`;
+      wrap.appendChild(el);
+    });
+  });
+}
+
+function gauti_aktyvius_rodiklius() {
+  const tipas = document.getElementById("tipas").value;
+  const tvarka = tipas === "vanduo"
+    ? [...VANDUO_PAPRASTI, ...METALAI_V, ...KATIJONAI, ...ANIJONAI]
+    : [...GRUNTAS_PAPRASTI, ...METALAI_G];
+  return tvarka.filter(r => {
+    const cb = document.getElementById("cb_" + r);
+    return cb && cb.checked;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  ĖMINIŲ LENTELĖ
+// ═══════════════════════════════════════════════════
+
+let eminiai = [];
+
+function atnaujintiLentele() {
+  const rodikliai = gauti_aktyvius_rodiklius();
+
+  // Antraštė
+  const hdr = document.getElementById("table-header");
+  hdr.innerHTML = `
+    <th class="col-obj">Ėminio pavadinimas</th>
+    <th class="col-date">Data</th>
+    <th class="col-punk">Punktas</th>
+    <th class="col-kat">Kat. Nr.</th>
+    ${rodikliai.map(r => `<th class="col-rod">${r}</th>`).join("")}
+  `;
+
+  // Eilutės
+  const tbody = document.getElementById("table-body");
+  tbody.innerHTML = "";
+  eminiai.forEach((em, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" value="${em.pavadinimas}" onchange="eminiai[${idx}].pavadinimas=this.value"></td>
+      <td><input type="date" value="${em.data}" onchange="eminiai[${idx}].data=this.value"></td>
+      <td><input type="text" value="${em.punktas}" onchange="eminiai[${idx}].punktas=this.value"></td>
+      <td><input type="text" value="${em.katalogas||''}" onchange="eminiai[${idx}].katalogas=this.value"></td>
+      ${rodikliai.map(r => {
+        // Naujiems rodikliams – pažymėti jei pirmasis ėminys
+        if (!(r in em.varneles)) em.varneles[r] = true;
+        return `<td class="center"><input type="checkbox" ${em.varneles[r] ? "checked" : ""}
+          onchange="eminiai[${idx}].varneles['${r}']=this.checked"></td>`;
+      }).join("")}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function pridetiEmini() {
+  const rodikliai = gauti_aktyvius_rodiklius();
+  const pirmas = eminiai.length > 0 ? eminiai[0] : null;
+  const varneles = {};
+  rodikliai.forEach(r => {
+    // Naujas ėminys – kopijuoti iš pirmo
+    varneles[r] = pirmas ? (pirmas.varneles[r] ?? true) : false;
+  });
+  eminiai.push({
+    pavadinimas: pirmas ? pirmas.pavadinimas : "",
+    data:        new Date().toISOString().split("T")[0],
+    punktas:     "",
+    katalogas:   "",
+    varneles,
+  });
+  atnaujintiLentele();
+}
+
+function pasalintiEmini() {
+  if (eminiai.length > 1) {
+    eminiai.pop();
+    atnaujintiLentele();
+  }
+}
+
+function isvalytiViska() {
+  document.getElementById("imone").value     = "";
+  document.getElementById("telefonas").value = "";
+  document.getElementById("uzsakymas").value = "";
+  document.getElementById("pastabos").value  = "";
+  document.querySelectorAll('.rodiklis-cb input').forEach(cb => cb.checked = false);
+  eminiai = [];
+  pridetiEmini();
+}
+
+// ═══════════════════════════════════════════════════
+//  KLIENTO DUOMENŲ IŠSAUGOJIMAS
+// ═══════════════════════════════════════════════════
+
+function issaugotiKlientoduomenis() {
+  const duom = {
+    imone:     document.getElementById("imone").value,
+    telefonas: document.getElementById("telefonas").value,
+  };
+  localStorage.setItem("grota_klientas", JSON.stringify(duom));
+}
+
+function uzkrautiKlientoduomenis() {
+  try {
+    const d = JSON.parse(localStorage.getItem("grota_klientas") || "{}");
+    if (d.imone)     document.getElementById("imone").value     = d.imone;
+    if (d.telefonas) document.getElementById("telefonas").value = d.telefonas;
+  } catch(e) {}
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("imone").addEventListener("change", issaugotiKlientoduomenis);
+  document.getElementById("telefonas").addEventListener("change", issaugotiKlientoduomenis);
+});
+
+// ═══════════════════════════════════════════════════
+//  GENERUOTI IR SIŲSTI
+// ═══════════════════════════════════════════════════
+
+async function generuoti() {
+  const imone = document.getElementById("imone").value.trim();
+  if (!imone) { rodytiStatus("Įveskite įmonės pavadinimą!", "err"); return; }
+
+  const rodikliai = gauti_aktyvius_rodiklius();
+  if (!rodikliai.length) { rodytiStatus("Pasirinkite bent vieną tyrimų rodiklį!", "err"); return; }
+
+  const tustiEminiai = eminiai.filter(em =>
+    rodikliai.some(r => em.varneles[r])
+  );
+  if (!tustiEminiai.length) { rodytiStatus("Pažymėkite bent vieną tyrimą bent vienam ėminiui!", "err"); return; }
+
+  rodytiStatus("⏳ Generuojama ir siunčiama...", "load");
+
+  // Išsaugoti kliento duomenis
+  issaugotiKlientoduomenis();
+
+  const duomenys = {
+    imone:      imone,
+    telefonas:  document.getElementById("telefonas").value.trim(),
+    uzsakymas:  document.getElementById("uzsakymas").value.trim(),
+    pastabos:   document.getElementById("pastabos").value.trim(),
+    tipas:      document.getElementById("tipas").value,
+    tiriamasis: document.getElementById("tiriamasis").value,
+    rodikliai,
+    eminiai: eminiai.map(em => ({
+      pavadinimas: em.pavadinimas,
+      data:        em.data,
+      punktas:     em.punktas || "",
+      varneles:    em.varneles,
+    })),
+  };
+
+  try {
+    const resp = await fetch("/generuoti", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(duomenys),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      rodytiStatus("❌ Klaida: " + err.klaida, "err");
+      return;
+    }
+
+    // Atsisiųsti failą
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `${imone}_${new Date().toISOString().split("T")[0]}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    rodytiStatus("✅ Dokumentas sugeneruotas ir išsiųstas į laboratorija@grota.lt!", "ok");
+  } catch(e) {
+    rodytiStatus("❌ Ryšio klaida: " + e.message, "err");
+  }
+}
+
+function rodytiStatus(msg, tipas) {
+  const el = document.getElementById("status-msg");
+  el.textContent  = msg;
+  el.className    = "status-msg status-" + tipas;
+  el.style.display = "block";
+}
+
+// ═══════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
