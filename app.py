@@ -15,7 +15,11 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
-app = Flask(__name__)
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__,
+    template_folder=BASE_DIR,
+    static_folder=BASE_DIR)
 
 # ── El. pašto nustatymai ──────────────────────────────────
 GMAIL_USER = "grota.laboratorija@gmail.com"
@@ -26,7 +30,7 @@ RECIPIENT  = "laboratorija@grota.lt"
 
 def generuoti_word(d):
     tipas    = d["tipas"]
-    sablonas = os.path.join(os.path.dirname(__file__), "static",
+    sablonas = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         "sablonas_vanduo.docx" if tipas=="vanduo" else "sablonas_gruntas.docx")
 
     doc      = Document(sablonas)
