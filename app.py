@@ -18,6 +18,17 @@ from email import encoders
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"]  = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
+
+@app.route("/generuoti", methods=["OPTIONS"])
+def generuoti_options():
+    return "", 200
+
 GMAIL_USER = "grota.laboratorija@gmail.com"
 GMAIL_PASS = "mduwfpjncmlwcocs"
 RECIPIENT  = "laboratorija@grota.lt"
@@ -143,21 +154,29 @@ def generuoti_word(d):
 # ── El. pašto siuntimas ───────────────────────────────────
 
 def siusti_email(imone, word_buf, filename):
-    msg            = MIMEMultipart()
-    msg["From"]    = GMAIL_USER
-    msg["To"]      = RECIPIENT
-    msg["Subject"] = f"Naujas tyrimų užsakymas – {imone}"
-    msg.attach(MIMEText(
-        f"Sveiki,\n\nGautas naujas tyrimų užsakymas nuo: {imone}\n\nUžsakymo forma prisegta.\n\n– Automatinis pranešimas",
-        "plain", "utf-8"))
-    part = MIMEBase("application", "octet-stream")
-    part.set_payload(word_buf.read())
-    encoders.encode_base64(part)
-    part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
-    msg.attach(part)
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(GMAIL_USER, GMAIL_PASS)
-        server.send_message(msg)
+    try:
+        msg            = MIMEMultipart()
+        msg["From"]    = GMAIL_USER
+        msg["To"]      = RECIPIENT
+        msg["Subject"] = f"Naujas tyrimo uzsakymas - {imone}"
+        msg.attach(MIMEText(
+            f"Sveiki,\n\nGautas naujas tyrimu uzsakymas nuo: {imone}\n\nUzsakymo forma prisegta.\n\n- Automatinis pranesimas",
+            "plain"))
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(word_buf.read())
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
+        msg.attach(part)
+        # Bandyti per TLS port 587
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(GMAIL_USER, GMAIL_PASS)
+            server.send_message(msg)
+    except Exception as email_err:
+        # El. pastas nepavyko - bet Word vis tiek generuojamas
+        print(f"El. pasto klaida: {email_err}")
 
 # ── Generuoti maršrutas ───────────────────────────────────
 
