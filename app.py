@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from flask import Flask, request, jsonify, send_file, render_template
+from flask import Flask, request, jsonify, send_file, render_template_string
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -9,35 +9,39 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.table import Table
 from datetime import date
-import copy, os, io, smtplib, base64
+import copy, os, io, smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
-import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__,
-    template_folder=BASE_DIR,
-    static_folder=BASE_DIR)
+app = Flask(__name__)
 
-# ── El. pašto nustatymai ──────────────────────────────────
 GMAIL_USER = "grota.laboratorija@gmail.com"
-GMAIL_PASS = "mduwfpjncmlwcocs"  # App Password
+GMAIL_PASS = "mduwfpjncmlwcocs"
 RECIPIENT  = "laboratorija@grota.lt"
+
+# ── Įkelti HTML ───────────────────────────────────────────
+HTML_FILE = os.path.join(BASE_DIR, "index.html")
+
+@app.route("/")
+def index():
+    with open(HTML_FILE, encoding="utf-8") as f:
+        return f.read()
 
 # ── Word generavimas ──────────────────────────────────────
 
 def generuoti_word(d):
     tipas    = d["tipas"]
-    sablonas = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+    sablonas = os.path.join(BASE_DIR,
         "sablonas_vanduo.docx" if tipas=="vanduo" else "sablonas_gruntas.docx")
 
-    doc      = Document(sablonas)
-    paras    = doc.paragraphs
-    rodikliai= d["rodikliai"]
-    eminiai  = d["eminiai"]
-    TNR      = "Times New Roman"
+    doc       = Document(sablonas)
+    paras     = doc.paragraphs
+    rodikliai = d["rodikliai"]
+    eminiai   = d["eminiai"]
+    TNR       = "Times New Roman"
 
     def _tnr(run, bold=None, size_pt=None):
         run.font.name = TNR
@@ -98,14 +102,12 @@ def generuoti_word(d):
             else:
                 set_cell(row.cells[ci], "", size_pt=8)
 
-    # Data
     for para in paras:
         if para.text.strip() and para.text.strip()[0].isdigit() and len(para.text.strip())==10:
             set_para(para, str(date.today())); break
 
-    # Pagrindiniai laukai
     for para in paras:
-        tl = para.text.lower()
+        tl  = para.text.lower()
         tel = d.get("telefonas","").strip()
         if tl.startswith("užsakovas"):
             txt = f"Užsakovas: {d['imone']}"
@@ -119,19 +121,17 @@ def generuoti_word(d):
             p = d.get("pastabos","").strip()
             set_para(para, f"Pastabos: {p}" if p else "")
 
-    # Lentelė
-    tbl     = doc.tables[0]
-    max_rod = 13
-    grupes  = [rodikliai[i:i+max_rod] for i in range(0, len(rodikliai), max_rod)]
+    tbl    = doc.tables[0]
+    grupes = [rodikliai[i:i+13] for i in range(0, len(rodikliai), 13)]
     uzpildyti(tbl, grupes[0])
 
     if len(grupes) > 1:
         sab_doc = Document(sablonas)
         tbl_el  = tbl._tbl
         for grupe in grupes[1:]:
-            sep = OxmlElement('w:p'); tbl_el.addnext(sep)
+            sep    = OxmlElement('w:p'); tbl_el.addnext(sep)
             new_el = copy.deepcopy(sab_doc.tables[0]._tbl); sep.addnext(new_el)
-            new_tbl = Table(new_el, doc)
+            new_tbl= Table(new_el, doc)
             uzpildyti(new_tbl, grupe)
             tbl_el = new_el
 
@@ -143,52 +143,35 @@ def generuoti_word(d):
 # ── El. pašto siuntimas ───────────────────────────────────
 
 def siusti_email(imone, word_buf, filename):
-    msg = MIMEMultipart()
+    msg            = MIMEMultipart()
     msg["From"]    = GMAIL_USER
     msg["To"]      = RECIPIENT
     msg["Subject"] = f"Naujas tyrimų užsakymas – {imone}"
-
-    body = f"""Sveiki,
-
-Gautas naujas tyrimų užsakymas nuo: {imone}
-
-Užsakymo forma prisegta prie šio laiško.
-
-–
-Automatinis pranešimas iš užsakymų sistemos
-"""
-    msg.attach(MIMEText(body, "plain", "utf-8"))
-
+    msg.attach(MIMEText(
+        f"Sveiki,\n\nGautas naujas tyrimų užsakymas nuo: {imone}\n\nUžsakymo forma prisegta.\n\n– Automatinis pranešimas",
+        "plain", "utf-8"))
     part = MIMEBase("application", "octet-stream")
     part.set_payload(word_buf.read())
     encoders.encode_base64(part)
     part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
     msg.attach(part)
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(GMAIL_USER, GMAIL_PASS)
         server.send_message(msg)
 
-# ── Maršrutai ─────────────────────────────────────────────
-
-@app.route("/")
-def index():
-    return render_template("index.html")
+# ── Generuoti maršrutas ───────────────────────────────────
 
 @app.route("/generuoti", methods=["POST"])
 def generuoti():
     try:
-        d = request.json
-        word_buf = generuoti_word(d)
-
+        d        = request.json
         imone    = d.get("imone","uzsakymas")
         filename = f"{imone}_{date.today()}.docx"
 
-        # Siųsti el. paštu
-        word_buf2 = generuoti_word(d)  # antra kopija siuntimui
+        word_buf  = generuoti_word(d)
+        word_buf2 = generuoti_word(d)
         siusti_email(imone, word_buf2, filename)
 
-        # Grąžinti atsisiuntimui
         word_buf.seek(0)
         return send_file(
             word_buf,
@@ -197,7 +180,8 @@ def generuoti():
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
     except Exception as e:
-        return jsonify({"klaida": str(e)}), 500
+        import traceback
+        return jsonify({"klaida": str(e), "traceback": traceback.format_exc()}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
