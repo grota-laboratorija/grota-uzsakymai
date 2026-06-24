@@ -178,6 +178,29 @@ def siusti_email(imone, word_buf, filename):
         # El. pastas nepavyko - bet Word vis tiek generuojamas
         print(f"El. pasto klaida: {email_err}")
 
+# ── OAuth2 callback ──────────────────────────────────────
+@app.route("/oauth2callback")
+def oauth2callback():
+    import urllib.request, urllib.parse, json as _json
+    code = request.args.get("code")
+    if not code:
+        return "Klaida: kodas nerastas", 400
+    try:
+        data = urllib.parse.urlencode({
+            "code":          code,
+            "client_id":     "473866566394-r4gv3tfc7srhdbq7p4f29dqptusc64of.apps.googleusercontent.com",
+            "client_secret": "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",
+            "redirect_uri":  "https://grota-uzsakymai.onrender.com/oauth2callback",
+            "grant_type":    "authorization_code",
+        }).encode()
+        req  = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
+        resp = urllib.request.urlopen(req)
+        result = _json.loads(resp.read())
+        refresh_token = result.get("refresh_token","NAV")
+        return f"<h2>Refresh Token:</h2><p style='word-break:break-all;font-size:1.2rem'><b>{refresh_token}</b></p><p>Nukopijuokite ir atsiuskite!</p>"
+    except Exception as e:
+        return f"Klaida: {e}", 500
+
 # ── Generuoti maršrutas ───────────────────────────────────
 
 @app.route("/generuoti", methods=["POST"])
