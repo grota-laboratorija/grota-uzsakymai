@@ -30,7 +30,7 @@ def generuoti_options():
     return "", 200
 
 GMAIL_USER     = "grota.laboratorija@gmail.com"
-RECIPIENT      = "laboratorija@grota.lt"
+RECIPIENT      = "grota.laboratorija@gmail.com"
 CLIENT_ID      = "473866566394-r4gv3tfc7srhdbq7p4f29dqptusc64of.apps.googleusercontent.com"
 CLIENT_SECRET  = "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"
 REFRESH_TOKEN  = "1//06U-Y-DbgZIKhCgYIARAAGAYSNwF-L9Iryoc4UWRm2PerHcLn3GbCG91S0umPHxeIJkTEkNjjyeIwrsUSuRnAW3hVliR899V7_ds"
