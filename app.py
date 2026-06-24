@@ -9,7 +9,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.table import Table
 from datetime import date
-import copy, os, io, smtplib
+import copy, os, io, base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -29,9 +29,11 @@ def add_cors(response):
 def generuoti_options():
     return "", 200
 
-GMAIL_USER = "grota.laboratorija@gmail.com"
-GMAIL_PASS = "mduwfpjncmlwcocs"
-RECIPIENT  = "laboratorija@grota.lt"
+GMAIL_USER     = "grota.laboratorija@gmail.com"
+RECIPIENT      = "laboratorija@grota.lt"
+CLIENT_ID      = "473866566394-r4gv3tfc7srhdbq7p4f29dqptusc64of.apps.googleusercontent.com"
+CLIENT_SECRET  = "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"
+REFRESH_TOKEN  = "1//06U-Y-DbgZIKhCgYIARAAGAYSNwF-L9Iryoc4UWRm2PerHcLn3GbCG91S0umPHxeIJkTEkNjjyeIwrsUSuRnAW3hVliR899V7_ds"
 
 # ── Įkelti HTML ───────────────────────────────────────────
 HTML_FILE = os.path.join(BASE_DIR, "index.html")
@@ -153,12 +155,29 @@ def generuoti_word(d):
 
 # ── El. pašto siuntimas ───────────────────────────────────
 
+def gauti_access_token():
+    """Gauna naują access token naudojant refresh token."""
+    import urllib.request, urllib.parse, json as _json
+    data = urllib.parse.urlencode({
+        "client_id":     CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "refresh_token": REFRESH_TOKEN,
+        "grant_type":    "refresh_token",
+    }).encode()
+    req    = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
+    resp   = urllib.request.urlopen(req)
+    result = _json.loads(resp.read())
+    return result["access_token"]
+
 def siusti_email(imone, word_buf, filename):
     try:
+        import urllib.request, urllib.parse, json as _json
+        access_token = gauti_access_token()
+
         msg            = MIMEMultipart()
         msg["From"]    = GMAIL_USER
         msg["To"]      = RECIPIENT
-        msg["Subject"] = f"Naujas tyrimo uzsakymas - {imone}"
+        msg["Subject"] = f"Naujas tyrimu uzsakymas - {imone}"
         msg.attach(MIMEText(
             f"Sveiki,\n\nGautas naujas tyrimu uzsakymas nuo: {imone}\n\nUzsakymo forma prisegta.\n\n- Automatinis pranesimas",
             "plain"))
@@ -167,15 +186,18 @@ def siusti_email(imone, word_buf, filename):
         encoders.encode_base64(part)
         part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
         msg.attach(part)
-        # Bandyti per TLS port 587
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(GMAIL_USER, GMAIL_PASS)
-            server.send_message(msg)
+
+        # Siusti per Gmail API
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+        api_url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+        req_data = _json.dumps({"raw": raw}).encode()
+        req = urllib.request.Request(api_url, data=req_data, headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type":  "application/json",
+        })
+        urllib.request.urlopen(req)
+        print(f"Laiškas išsiųstas: {imone}")
     except Exception as email_err:
-        # El. pastas nepavyko - bet Word vis tiek generuojamas
         print(f"El. pasto klaida: {email_err}")
 
 # ── OAuth2 callback ──────────────────────────────────────
